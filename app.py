@@ -193,15 +193,16 @@ The available models are:
         )
 
     with col2:
-        friendly_feature_lines = "\n".join(
-            [f"- {FEATURE_LABELS.get(f, f)}" for f in feature_names]
-        )
-        st.info(
-            f"""
-    **Model input features ({len(feature_names)} total):**
+        st.markdown(f"**Model input features ({len(feature_names)} total):**")
 
-    {friendly_feature_lines}
-            """
+        feature_display_df = pd.DataFrame({
+            "Input feature": [FEATURE_LABELS.get(f, f) for f in feature_names]
+        })
+
+        st.dataframe(
+            feature_display_df,
+            use_container_width=True,
+            hide_index=True
         )
 
     st.markdown("---")

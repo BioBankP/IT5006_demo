@@ -108,6 +108,25 @@ st.sidebar.write("✅ spatial_temporal_df.csv")
 
 
 # =========================
+# User-friendly labels
+# =========================
+FEATURE_LABELS = {
+    "month_sin": "Month cycle (sin)",
+    "month_cos": "Month cycle (cos)",
+    "dow_sin": "Day-of-week cycle (sin)",
+    "dow_cos": "Day-of-week cycle (cos)",
+    "tier1_lag_7d": "Tier 1 incidents in the past 7 days",
+    "tier1_lag_30d": "Tier 1 incidents in the past 30 days",
+    "tier2_lag_7d": "Tier 2 incidents in the past 7 days",
+    "tier2_lag_30d": "Tier 2 incidents in the past 30 days",
+    "tier3_lag_7d": "Tier 3 incidents in the past 7 days",
+    "tier3_lag_30d": "Tier 3 incidents in the past 30 days",
+    "tier4_lag_7d": "Tier 4 incidents in the past 7 days",
+    "tier4_lag_30d": "Tier 4 incidents in the past 30 days",
+}
+
+
+# =========================
 # Helper functions
 # =========================
 def prepare_input_dataframe(input_dict, ordered_features):
@@ -174,10 +193,14 @@ The available models are:
         )
 
     with col2:
+        friendly_feature_lines = "\n".join(
+            [f"- {FEATURE_LABELS.get(f, f)}" for f in feature_names]
+        )
         st.info(
             f"""
-**Model input features ({len(feature_names)} total):**
-{", ".join(feature_names)}
+    **Model input features ({len(feature_names)} total):**
+
+    {friendly_feature_lines}
             """
         )
 
@@ -281,20 +304,76 @@ Then select a trained model and click **Run Prediction**.
     col1, col2 = st.columns(2)
 
     with col1:
-        input_values["month_sin"] = st.number_input("month_sin", value=float(default_values["month_sin"]), format="%.4f")
-        input_values["month_cos"] = st.number_input("month_cos", value=float(default_values["month_cos"]), format="%.4f")
-        input_values["dow_sin"] = st.number_input("dow_sin", value=float(default_values["dow_sin"]), format="%.4f")
-        input_values["dow_cos"] = st.number_input("dow_cos", value=float(default_values["dow_cos"]), format="%.4f")
-        input_values["tier1_lag_7d"] = st.number_input("tier1_lag_7d", min_value=0, value=int(default_values["tier1_lag_7d"]), step=1)
-        input_values["tier1_lag_30d"] = st.number_input("tier1_lag_30d", min_value=0, value=int(default_values["tier1_lag_30d"]), step=1)
+        input_values["month_sin"] = st.number_input(
+            FEATURE_LABELS["month_sin"],
+            value=float(default_values["month_sin"]),
+            format="%.4f"
+        )
+        input_values["month_cos"] = st.number_input(
+            FEATURE_LABELS["month_cos"],
+            value=float(default_values["month_cos"]),
+            format="%.4f"
+        )
+        input_values["dow_sin"] = st.number_input(
+            FEATURE_LABELS["dow_sin"],
+            value=float(default_values["dow_sin"]),
+            format="%.4f"
+        )
+        input_values["dow_cos"] = st.number_input(
+            FEATURE_LABELS["dow_cos"],
+            value=float(default_values["dow_cos"]),
+            format="%.4f"
+        )
+        input_values["tier1_lag_7d"] = st.number_input(
+            FEATURE_LABELS["tier1_lag_7d"],
+            min_value=0,
+            value=int(default_values["tier1_lag_7d"]),
+            step=1
+        )
+        input_values["tier1_lag_30d"] = st.number_input(
+            FEATURE_LABELS["tier1_lag_30d"],
+            min_value=0,
+            value=int(default_values["tier1_lag_30d"]),
+            step=1
+        )
 
     with col2:
-        input_values["tier2_lag_7d"] = st.number_input("tier2_lag_7d", min_value=0, value=int(default_values["tier2_lag_7d"]), step=1)
-        input_values["tier2_lag_30d"] = st.number_input("tier2_lag_30d", min_value=0, value=int(default_values["tier2_lag_30d"]), step=1)
-        input_values["tier3_lag_7d"] = st.number_input("tier3_lag_7d", min_value=0, value=int(default_values["tier3_lag_7d"]), step=1)
-        input_values["tier3_lag_30d"] = st.number_input("tier3_lag_30d", min_value=0, value=int(default_values["tier3_lag_30d"]), step=1)
-        input_values["tier4_lag_7d"] = st.number_input("tier4_lag_7d", min_value=0, value=int(default_values["tier4_lag_7d"]), step=1)
-        input_values["tier4_lag_30d"] = st.number_input("tier4_lag_30d", min_value=0, value=int(default_values["tier4_lag_30d"]), step=1)
+        input_values["tier2_lag_7d"] = st.number_input(
+            FEATURE_LABELS["tier2_lag_7d"],
+            min_value=0,
+            value=int(default_values["tier2_lag_7d"]),
+            step=1
+        )
+        input_values["tier2_lag_30d"] = st.number_input(
+            FEATURE_LABELS["tier2_lag_30d"],
+            min_value=0,
+            value=int(default_values["tier2_lag_30d"]),
+            step=1
+        )
+        input_values["tier3_lag_7d"] = st.number_input(
+            FEATURE_LABELS["tier3_lag_7d"],
+            min_value=0,
+            value=int(default_values["tier3_lag_7d"]),
+            step=1
+        )
+        input_values["tier3_lag_30d"] = st.number_input(
+            FEATURE_LABELS["tier3_lag_30d"],
+            min_value=0,
+            value=int(default_values["tier3_lag_30d"]),
+            step=1
+        )
+        input_values["tier4_lag_7d"] = st.number_input(
+            FEATURE_LABELS["tier4_lag_7d"],
+            min_value=0,
+            value=int(default_values["tier4_lag_7d"]),
+            step=1
+        )
+        input_values["tier4_lag_30d"] = st.number_input(
+            FEATURE_LABELS["tier4_lag_30d"],
+            min_value=0,
+            value=int(default_values["tier4_lag_30d"]),
+            step=1
+        )
 
     st.markdown("### Quick Example")
     if st.button("Load example values"):
@@ -335,7 +414,8 @@ Then select a trained model and click **Run Prediction**.
             )
 
             st.markdown("### Input Used")
-            st.dataframe(input_df, use_container_width=True)
+            display_input_df = input_df.rename(columns=FEATURE_LABELS)
+            st.dataframe(display_input_df, use_container_width=True)
 
         except Exception as e:
             st.error(f"Prediction failed: {e}")
@@ -376,5 +456,6 @@ elif page == "How to Use":
     )
 
     st.markdown("---")
-    st.markdown("### Loaded Feature Order")
-    st.write(feature_names)
+    st.markdown("### Input Features Used by the Model")
+    friendly_feature_list = [FEATURE_LABELS.get(f, f) for f in feature_names]
+    st.write(friendly_feature_list)

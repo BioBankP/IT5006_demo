@@ -380,10 +380,13 @@ if run_prediction:
         display_df = prediction_df.copy()
         display_df["Chance next day"] = display_df["Chance next day"].map(lambda value: f"{value:.1%}")
         display_df["Threshold"] = display_df["Threshold"].map(lambda value: f"{value:.0%}")
-
-        st.subheader(
+        st.session_state["last_prediction_title"] = (
             f"Predicted risk for agency {selected_agency} on {prediction_date.date().isoformat()}"
         )
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        st.session_state["last_prediction_df"] = display_df
         st.session_state["reset_thresholds_pending"] = True
         st.rerun()
+
+if "last_prediction_title" in st.session_state and "last_prediction_df" in st.session_state:
+    st.subheader(st.session_state["last_prediction_title"])
+    st.dataframe(st.session_state["last_prediction_df"], use_container_width=True, hide_index=True)

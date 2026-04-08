@@ -113,10 +113,10 @@ NIBRS_SEVERITY_MAPPING = {
 
 
 def reset_threshold_state():
-    st.session_state["threshold_tier1"] = DEFAULT_THRESHOLDS["y_tier1"]
-    st.session_state["threshold_tier2"] = DEFAULT_THRESHOLDS["y_tier2"]
-    st.session_state["threshold_tier3"] = DEFAULT_THRESHOLDS["y_tier3"]
-    st.session_state["threshold_tier4"] = DEFAULT_THRESHOLDS["y_tier4"]
+    st.session_state["ui_threshold_tier1"] = DEFAULT_THRESHOLDS["y_tier1"]
+    st.session_state["ui_threshold_tier2"] = DEFAULT_THRESHOLDS["y_tier2"]
+    st.session_state["ui_threshold_tier3"] = DEFAULT_THRESHOLDS["y_tier3"]
+    st.session_state["ui_threshold_tier4"] = DEFAULT_THRESHOLDS["y_tier4"]
 
 
 def get_google_drive_folder_url():
@@ -315,7 +315,11 @@ if missing_features:
 
 st.title("Crime Risk Predictor")
 
-if "threshold_tier1" not in st.session_state:
+if st.session_state.get("reset_thresholds_pending"):
+    reset_threshold_state()
+    st.session_state["reset_thresholds_pending"] = False
+
+if "ui_threshold_tier1" not in st.session_state:
     reset_threshold_state()
 
 control_col, info_col = st.columns([1.1, 0.9])
@@ -342,11 +346,11 @@ with info_col:
     st.markdown("**Prediction thresholds**")
     threshold_col1, threshold_col2 = st.columns(2)
     with threshold_col1:
-        threshold_tier1 = st.number_input("Tier 1 threshold", min_value=0.0, max_value=1.0, key="threshold_tier1", step=0.01, format="%.2f")
-        threshold_tier2 = st.number_input("Tier 2 threshold", min_value=0.0, max_value=1.0, key="threshold_tier2", step=0.01, format="%.2f")
+        threshold_tier1 = st.number_input("Tier 1 threshold", min_value=0.0, max_value=1.0, key="ui_threshold_tier1", step=0.01, format="%.2f")
+        threshold_tier2 = st.number_input("Tier 2 threshold", min_value=0.0, max_value=1.0, key="ui_threshold_tier2", step=0.01, format="%.2f")
     with threshold_col2:
-        threshold_tier3 = st.number_input("Tier 3 threshold", min_value=0.0, max_value=1.0, key="threshold_tier3", step=0.01, format="%.2f")
-        threshold_tier4 = st.number_input("Tier 4 threshold", min_value=0.0, max_value=1.0, key="threshold_tier4", step=0.01, format="%.2f")
+        threshold_tier3 = st.number_input("Tier 3 threshold", min_value=0.0, max_value=1.0, key="ui_threshold_tier3", step=0.01, format="%.2f")
+        threshold_tier4 = st.number_input("Tier 4 threshold", min_value=0.0, max_value=1.0, key="ui_threshold_tier4", step=0.01, format="%.2f")
 
 current_thresholds = {
     "y_tier1": float(threshold_tier1),
@@ -381,4 +385,5 @@ if run_prediction:
             f"Predicted risk for agency {selected_agency} on {prediction_date.date().isoformat()}"
         )
         st.dataframe(display_df, use_container_width=True, hide_index=True)
-        reset_threshold_state()
+        st.session_state["reset_thresholds_pending"] = True
+        st.rerun()

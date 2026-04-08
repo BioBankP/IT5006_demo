@@ -2,6 +2,7 @@ import os
 import warnings
 from pathlib import Path
 
+import gdown
 import joblib
 import numpy as np
 import pandas as pd
@@ -30,16 +31,19 @@ st.set_page_config(
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
-MODEL_DIR = Path(os.getenv("IT5006_MODEL_DIR", PROJECT_ROOT / "Saved_Models"))
-DATA_DIR = Path(os.getenv("IT5006_NIBRS_DIR", PROJECT_ROOT / "Testing Dataset NIBRS"))
+LOCAL_MODEL_DIR = Path(os.getenv("IT5006_MODEL_DIR", PROJECT_ROOT / "Saved_Models"))
+LOCAL_DATA_DIR = Path(os.getenv("IT5006_NIBRS_DIR", PROJECT_ROOT / "Testing Dataset NIBRS"))
+ASSET_CACHE_DIR = BASE_DIR / ".asset_cache"
+DEFAULT_GDRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1bmiKUoxqn7wkc7IPkTaC542zCFf_oFWK?usp=sharing"
 
-MODEL_FILE = MODEL_DIR / "crime_models_v2.joblib"
-SCALER_FILE = MODEL_DIR / "data_scaler_v2.joblib"
-FEATURE_FILE = MODEL_DIR / "feature_names_v2.joblib"
-WEIGHTS_FILE = MODEL_DIR / "composite_weights.joblib"
-
-INCIDENT_FILE = DATA_DIR / "NIBRS_incident_Illinois.csv"
-OFFENSE_FILE = DATA_DIR / "NIBRS_OFFENSE_Illinois.csv"
+ASSET_PATHS = {
+    "crime_models": LOCAL_MODEL_DIR / "crime_models_v2.joblib",
+    "data_scaler": LOCAL_MODEL_DIR / "data_scaler_v2.joblib",
+    "feature_names": LOCAL_MODEL_DIR / "feature_names_v2.joblib",
+    "composite_weights": LOCAL_MODEL_DIR / "composite_weights.joblib",
+    "incident_data": LOCAL_DATA_DIR / "NIBRS_incident_Illinois.csv",
+    "offense_data": LOCAL_DATA_DIR / "NIBRS_OFFENSE_Illinois.csv",
+}
 
 TARGET_COLS = ["y_tier1", "y_tier2", "y_tier3", "y_tier4"]
 DEFAULT_THRESHOLDS = {"y_tier1": 0.10, "y_tier2": 0.20, "y_tier3": 0.35, "y_tier4": 0.35}
@@ -115,23 +119,53 @@ def reset_threshold_state():
     st.session_state["threshold_tier4"] = DEFAULT_THRESHOLDS["y_tier4"]
 
 
-def get_missing_files():
-    required_files = [
-        MODEL_FILE,
-        SCALER_FILE,
-        FEATURE_FILE,
-        WEIGHTS_FILE,
-        INCIDENT_FILE,
-        OFFENSE_FILE,
-    ]
-    return [str(path) for path in required_files if not path.exists()]
+def get_google_drive_folder_url():
+    if "gdrive_assets_folder_url" in st.secrets:
+        return st.secrets["gdrive_assets_folder_url"]
+    return os.getenv("GDRIVE_ASSETS_FOLDER_URL", DEFAULT_GDRIVE_FOLDER_URL)
+
+
+@st.cache_data(show_spinner=False)
+def download_google_drive_folder(folder_url):
+    if not folder_url:
+        return {}
+
+    ASSET_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    downloaded_paths = gdown.download_folder(
+        url=str(folder_url),
+        output=str(ASSET_CACHE_DIR),
+        quiet=False,
+        remaining_ok=True,
+        use_cookies=False,
+    )
+    if not downloaded_paths:
+        return {}
+    return {Path(path).name: str(Path(path)) for path in downloaded_paths}
+
+
+def resolve_asset_path(asset_name):
+    local_path = ASSET_PATHS[asset_name]
+    if local_path.exists():
+        return str(local_path)
+
+    downloaded_files = download_google_drive_folder(get_google_drive_folder_url())
+    cached_path = ASSET_CACHE_DIR / local_path.name
+
+    if local_path.name in downloaded_files:
+        return downloaded_files[local_path.name]
+    if cached_path.exists():
+        return str(cached_path)
+
+    raise FileNotFoundError(
+        f"Missing required asset '{local_path.name}' in both local storage and the shared Google Drive folder."
+    )
 
 
 @st.cache_resource(show_spinner=False)
 def load_artifacts():
-    models = joblib.load(MODEL_FILE)
-    scaler = joblib.load(SCALER_FILE)
-    feature_names = joblib.load(FEATURE_FILE)
+    models = joblib.load(resolve_asset_path("crime_models"))
+    scaler = joblib.load(resolve_asset_path("data_scaler"))
+    feature_names = joblib.load(resolve_asset_path("feature_names"))
     return models, scaler, feature_names
 
 
@@ -190,15 +224,15 @@ def add_engineered_features(df_daily, composite_weights):
 
 @st.cache_data(show_spinner=False)
 def build_prediction_dataset():
-    composite_weights = joblib.load(WEIGHTS_FILE)
+    composite_weights = joblib.load(resolve_asset_path("composite_weights"))
 
     offenses = pd.read_csv(
-        OFFENSE_FILE,
+        resolve_asset_path("offense_data"),
         usecols=["incident_id", "offense_code"],
         dtype={"incident_id": "int64", "offense_code": "string"},
     )
     incidents = pd.read_csv(
-        INCIDENT_FILE,
+        resolve_asset_path("incident_data"),
         usecols=["incident_id", "incident_date", "agency_id"],
         dtype={"incident_id": "int64", "agency_id": "string"},
     )
@@ -262,18 +296,14 @@ def build_prediction_output(models, scaler, feature_names, feature_row, threshol
     return pd.DataFrame(rows)
 
 
-missing_files = get_missing_files()
-if missing_files:
-    st.error("The app is missing required local files.")
-    for missing_file in missing_files:
-        st.write(f"- {missing_file}")
-    st.stop()
-
 try:
     models, scaler, feature_names = load_artifacts()
     feature_frame, agencies, first_date, last_actual_date = build_prediction_dataset()
 except Exception as exc:
-    st.error(f"Failed to load the Illinois showcase app: {exc}")
+    st.error(f"Failed to load the app assets: {exc}")
+    st.write("The shared Google Drive folder should contain these files:")
+    for path in ASSET_PATHS.values():
+        st.write(f"- {path.name}")
     st.stop()
 
 missing_features = [feature for feature in feature_names if feature not in feature_frame.columns]
